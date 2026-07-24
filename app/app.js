@@ -97,23 +97,83 @@ $('#tabbar').addEventListener('click', (e) => {
 /* ===================================================================
    TABLEAU DE BORD
    =================================================================== */
+let dashPeriod = 'all';
+const PERIOD_LABELS = { today: "(aujourd'hui)", week: '(7 j)', month: '(30 j)', all: '(tout)' };
+
+function periodStart(period) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (period === 'today') return d.getTime();
+  if (period === 'week') return d.getTime() - 6 * 864e5;
+  if (period === 'month') return d.getTime() - 29 * 864e5;
+  return 0;
+}
+
+function salesInPeriod(period) {
+  const from = periodStart(period);
+  return state.sales.filter((s) => new Date(s.date).getTime() >= from);
+}
+
+$('#periodSelect').addEventListener('click', (e) => {
+  const b = e.target.closest('.seg');
+  if (!b) return;
+  dashPeriod = b.dataset.period;
+  $$('#periodSelect .seg').forEach((s) => s.classList.toggle('is-active', s === b));
+  renderDashboard();
+});
+
+function renderChart(period) {
+  // Nombre de jours affichés selon la période
+  const days = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : 14;
+  const buckets = [];
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(base.getTime() - i * 864e5);
+    buckets.push({ day, total: 0 });
+  }
+  const first = buckets[0].day.getTime();
+  state.sales.forEach((s) => {
+    const t = new Date(s.date); t.setHours(0, 0, 0, 0);
+    if (t.getTime() < first) return;
+    const idx = Math.round((t.getTime() - first) / 864e5);
+    if (buckets[idx]) buckets[idx].total += s.total;
+  });
+  const max = Math.max(1, ...buckets.map((b) => b.total));
+  const showEvery = days > 14 ? 5 : days > 7 ? 2 : 1;
+  $('#salesChart').innerHTML = buckets
+    .map((b, i) => {
+      const h = Math.round((b.total / max) * 100);
+      const label = i % showEvery === 0
+        ? b.day.toLocaleDateString('fr-FR', { day: '2-digit', month: days > 14 ? undefined : 'short' })
+        : '';
+      const val = b.total > 0 ? (b.total >= 1000 ? Math.round(b.total / 1000) + 'k' : b.total) : '';
+      return `<div class="chart__bar" title="${b.day.toLocaleDateString('fr-FR')} : ${money(b.total)}">
+        <span class="chart__val">${val}</span>
+        <div class="chart__fill" style="height:${h}%"></div>
+        <span class="chart__label">${label}</span>
+      </div>`;
+    })
+    .join('');
+}
+
 function renderDashboard() {
-  const revenue = state.sales.reduce((s, x) => s + x.total, 0);
-  const profit = state.sales.reduce((s, x) => s + (x.profit || 0), 0);
+  const scoped = salesInPeriod(dashPeriod);
+  const revenue = scoped.reduce((s, x) => s + x.total, 0);
+  const profit = scoped.reduce((s, x) => s + (x.profit || 0), 0);
+  const avg = scoped.length ? revenue / scoped.length : 0;
   const stockValue = state.products.reduce((s, p) => s + p.qty * (p.cost || 0), 0);
   const stockCount = state.products.reduce((s, p) => s + p.qty, 0);
 
-  const today = new Date().toDateString();
-  const todaySales = state.sales.filter((s) => new Date(s.date).toDateString() === today);
-  const todayRevenue = todaySales.reduce((s, x) => s + x.total, 0);
-
+  $('#periodLabelA').textContent = PERIOD_LABELS[dashPeriod];
+  $('#periodLabelB').textContent = PERIOD_LABELS[dashPeriod];
   $('#statRevenue').textContent = money(revenue);
-  $('#statSales').textContent = `${state.sales.length} vente${state.sales.length > 1 ? 's' : ''}`;
+  $('#statSales').textContent = `${scoped.length} vente${scoped.length > 1 ? 's' : ''}`;
   $('#statProfit').textContent = money(profit);
   $('#statStockValue').textContent = money(stockValue);
   $('#statStockCount').textContent = `${stockCount} article${stockCount > 1 ? 's' : ''} en stock`;
-  $('#statToday').textContent = money(todayRevenue);
-  $('#statTodayCount').textContent = `${todaySales.length} vente${todaySales.length > 1 ? 's' : ''}`;
+  $('#statAvg').textContent = money(avg);
+  renderChart(dashPeriod);
 
   // Stock faible
   const low = state.products.filter((p) => p.qty <= (p.threshold ?? 5));
@@ -146,10 +206,36 @@ function renderDashboard() {
 /* ===================================================================
    STOCK
    =================================================================== */
+let stockCategoryFilter = 'all';
+
+function categories() {
+  return [...new Set(state.products.map((p) => (p.category || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function refreshCategoryDatalist() {
+  $('#categoryList').innerHTML = categories().map((c) => `<option value="${esc(c)}">`).join('');
+}
+
+function renderCategoryChips() {
+  const cats = categories();
+  const box = $('#stockChips');
+  if (cats.length === 0) { box.innerHTML = ''; stockCategoryFilter = 'all'; return; }
+  if (stockCategoryFilter !== 'all' && !cats.includes(stockCategoryFilter)) stockCategoryFilter = 'all';
+  box.innerHTML =
+    `<button class="chip ${stockCategoryFilter === 'all' ? 'is-active' : ''}" data-cat="all">Tout</button>` +
+    cats.map((c) => `<button class="chip ${stockCategoryFilter === c ? 'is-active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+  $$('#stockChips .chip').forEach((b) =>
+    b.addEventListener('click', () => { stockCategoryFilter = b.dataset.cat; renderProducts($('#stockSearch').value); })
+  );
+}
+
 function renderProducts(filter = '') {
   const q = filter.trim().toLowerCase();
+  refreshCategoryDatalist();
+  renderCategoryChips();
   const list = state.products
     .filter((p) => p.name.toLowerCase().includes(q))
+    .filter((p) => stockCategoryFilter === 'all' || (p.category || '') === stockCategoryFilter)
     .sort((a, b) => a.name.localeCompare(b.name));
 
   $('#stockEmpty').hidden = state.products.length !== 0;
@@ -159,10 +245,11 @@ function renderProducts(filter = '') {
       let cls = '', tag = '';
       if (p.qty === 0) { cls = 'qty-out'; tag = 'Rupture'; }
       else if (p.qty <= th) { cls = 'qty-low'; tag = 'Faible'; }
+      const cat = p.category ? `<span class="badge">${esc(p.category)}</span> ` : '';
       return `<li class="product" data-id="${p.id}">
         <div class="product__info">
           <div class="product__name">${esc(p.name)}</div>
-          <div class="product__meta">${money(p.price)}${p.cost ? ' · achat ' + money(p.cost) : ''}</div>
+          <div class="product__meta">${cat}${money(p.price)}${p.cost ? ' · achat ' + money(p.cost) : ''}</div>
         </div>
         <div class="product__qty ${cls}">${p.qty}<small>${tag || 'en stock'}</small></div>
       </li>`;
@@ -183,6 +270,8 @@ function openProductModal(id) {
   $('#productModalTitle').textContent = p ? 'Modifier le produit' : 'Nouveau produit';
   $('#prodId').value = p ? p.id : '';
   $('#prodName').value = p ? p.name : '';
+  $('#prodCategory').value = p && p.category ? p.category : '';
+  refreshCategoryDatalist();
   $('#prodPrice').value = p ? p.price : '';
   $('#prodCost').value = p && p.cost ? p.cost : '';
   $('#prodQty').value = p ? p.qty : '';
@@ -202,6 +291,7 @@ $('#productForm').addEventListener('submit', (e) => {
   const id = $('#prodId').value;
   const data = {
     name: $('#prodName').value.trim(),
+    category: $('#prodCategory').value.trim(),
     price: Math.max(0, Number($('#prodPrice').value) || 0),
     cost: Math.max(0, Number($('#prodCost').value) || 0),
     qty: Math.max(0, Math.floor(Number($('#prodQty').value) || 0)),
@@ -533,9 +623,9 @@ function seedIfEmpty() {
   // Petit exemple au tout premier lancement pour illustrer l'usage.
   if (state.products.length === 0 && state.sales.length === 0 && !localStorage.getItem('stockcaisse.seeded')) {
     state.products = [
-      { id: uid(), name: 'Savon', price: 500, cost: 350, qty: 24, threshold: 5, createdAt: new Date().toISOString() },
-      { id: uid(), name: 'Sucre (1 kg)', price: 700, cost: 550, qty: 12, threshold: 4, createdAt: new Date().toISOString() },
-      { id: uid(), name: 'Eau minérale', price: 300, cost: 200, qty: 3, threshold: 6, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Savon', category: 'Hygiène', price: 500, cost: 350, qty: 24, threshold: 5, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Sucre (1 kg)', category: 'Alimentation', price: 700, cost: 550, qty: 12, threshold: 4, createdAt: new Date().toISOString() },
+      { id: uid(), name: 'Eau minérale', category: 'Boissons', price: 300, cost: 200, qty: 3, threshold: 6, createdAt: new Date().toISOString() },
     ];
     localStorage.setItem('stockcaisse.seeded', '1');
     save();

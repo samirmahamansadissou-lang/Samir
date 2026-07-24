@@ -28,14 +28,21 @@
     <section class="view" id="view-accueil">
       <h1 class="view__title">Tableau de bord</h1>
 
+      <div class="segmented" id="periodSelect" role="tablist">
+        <button class="seg" data-period="today">Aujourd'hui</button>
+        <button class="seg" data-period="week">7 jours</button>
+        <button class="seg" data-period="month">30 jours</button>
+        <button class="seg is-active" data-period="all">Tout</button>
+      </div>
+
       <div class="cards">
         <div class="card card--accent">
-          <span class="card__label">Chiffre d'affaires</span>
+          <span class="card__label">Chiffre d'affaires <em id="periodLabelA">(tout)</em></span>
           <strong class="card__value" id="statRevenue">—</strong>
           <small class="card__hint" id="statSales">0 vente</small>
         </div>
         <div class="card">
-          <span class="card__label">Bénéfice estimé</span>
+          <span class="card__label">Bénéfice estimé <em id="periodLabelB">(tout)</em></span>
           <strong class="card__value" id="statProfit">—</strong>
           <small class="card__hint">marge sur ventes</small>
         </div>
@@ -45,10 +52,15 @@
           <small class="card__hint" id="statStockCount">0 article</small>
         </div>
         <div class="card">
-          <span class="card__label">Aujourd'hui</span>
-          <strong class="card__value" id="statToday">—</strong>
-          <small class="card__hint" id="statTodayCount">0 vente</small>
+          <span class="card__label">Panier moyen</span>
+          <strong class="card__value" id="statAvg">—</strong>
+          <small class="card__hint">par vente sur la période</small>
         </div>
+      </div>
+
+      <div class="panel" id="chartPanel">
+        <h2 class="panel__title">Ventes par jour</h2>
+        <div class="chart" id="salesChart"></div>
       </div>
 
       <div class="panel" id="lowStockPanel" hidden>
@@ -69,6 +81,7 @@
         <input type="search" id="stockSearch" placeholder="Rechercher un produit…" />
         <button class="btn btn--primary" id="addProductBtn">+ Produit</button>
       </div>
+      <div class="chips" id="stockChips"></div>
       <ul class="products" id="productList"></ul>
       <p class="empty" id="stockEmpty" hidden>Aucun produit. Touchez « + Produit » pour commencer.</p>
     </section>
@@ -162,6 +175,11 @@
         <label class="field">
           <span>Nom du produit *</span>
           <input type="text" id="prodName" class="input" required placeholder="Ex. Savon" />
+        </label>
+        <label class="field">
+          <span>Catégorie</span>
+          <input type="text" id="prodCategory" class="input" list="categoryList" placeholder="Ex. Hygiène, Boissons…" />
+          <datalist id="categoryList"></datalist>
         </label>
         <div class="grid2">
           <label class="field">
