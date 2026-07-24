@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="Gérez votre stock et générez des reçus en un clin d'œil." />
+  <meta name="theme-color" content="#0f766e" />
+  <title>StockCaisse — Gestion & Reçus</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+</head>
+<body>
+  <!-- En-tête -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__logo" id="topLogo">🧾</span>
+      <div>
+        <strong id="topName">StockCaisse</strong>
+        <small id="topSub">Gestion de stock &amp; reçus</small>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ===== ACCUEIL ===== -->
+    <section class="view" id="view-accueil">
+      <h1 class="view__title">Tableau de bord</h1>
+
+      <div class="cards">
+        <div class="card card--accent">
+          <span class="card__label">Chiffre d'affaires</span>
+          <strong class="card__value" id="statRevenue">—</strong>
+          <small class="card__hint" id="statSales">0 vente</small>
+        </div>
+        <div class="card">
+          <span class="card__label">Bénéfice estimé</span>
+          <strong class="card__value" id="statProfit">—</strong>
+          <small class="card__hint">marge sur ventes</small>
+        </div>
+        <div class="card">
+          <span class="card__label">Valeur du stock</span>
+          <strong class="card__value" id="statStockValue">—</strong>
+          <small class="card__hint" id="statStockCount">0 article</small>
+        </div>
+        <div class="card">
+          <span class="card__label">Aujourd'hui</span>
+          <strong class="card__value" id="statToday">—</strong>
+          <small class="card__hint" id="statTodayCount">0 vente</small>
+        </div>
+      </div>
+
+      <div class="panel" id="lowStockPanel" hidden>
+        <h2 class="panel__title">⚠️ Stock faible</h2>
+        <ul class="minilist" id="lowStockList"></ul>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel__title">Ventes récentes</h2>
+        <ul class="minilist" id="recentSales"></ul>
+      </div>
+    </section>
+
+    <!-- ===== STOCK ===== -->
+    <section class="view" id="view-stock" hidden>
+      <h1 class="view__title">Stock</h1>
+      <div class="searchbar">
+        <input type="search" id="stockSearch" placeholder="Rechercher un produit…" />
+        <button class="btn btn--primary" id="addProductBtn">+ Produit</button>
+      </div>
+      <ul class="products" id="productList"></ul>
+      <p class="empty" id="stockEmpty" hidden>Aucun produit. Touchez « + Produit » pour commencer.</p>
+    </section>
+
+    <!-- ===== VENDRE ===== -->
+    <section class="view" id="view-vendre" hidden>
+      <h1 class="view__title">Nouvelle vente</h1>
+      <div class="searchbar">
+        <input type="search" id="saleSearch" placeholder="Ajouter un produit au panier…" />
+      </div>
+      <ul class="pickgrid" id="pickList"></ul>
+
+      <div class="cart" id="cartBox">
+        <h2 class="panel__title">Panier</h2>
+        <ul class="cart__items" id="cartItems"></ul>
+        <p class="empty" id="cartEmpty">Le panier est vide.</p>
+        <div class="cart__total">
+          <span>Total</span>
+          <strong id="cartTotal">—</strong>
+        </div>
+        <input type="text" id="clientName" class="input" placeholder="Nom du client (facultatif)" />
+        <button class="btn btn--primary btn--big" id="checkoutBtn" disabled>Encaisser &amp; générer le reçu</button>
+      </div>
+    </section>
+
+    <!-- ===== REÇUS ===== -->
+    <section class="view" id="view-recus" hidden>
+      <h1 class="view__title">Reçus</h1>
+      <ul class="receipts" id="receiptList"></ul>
+      <p class="empty" id="receiptsEmpty" hidden>Aucun reçu pour l'instant.</p>
+    </section>
+
+    <!-- ===== RÉGLAGES ===== -->
+    <section class="view" id="view-reglages" hidden>
+      <h1 class="view__title">Réglages</h1>
+      <div class="form">
+        <label class="field">
+          <span>Nom de l'entreprise</span>
+          <input type="text" id="setBusiness" class="input" placeholder="Ma Boutique" />
+        </label>
+        <label class="field">
+          <span>Téléphone</span>
+          <input type="tel" id="setPhone" class="input" placeholder="+227 …" />
+        </label>
+        <label class="field">
+          <span>Adresse</span>
+          <input type="text" id="setAddress" class="input" placeholder="Ville, quartier…" />
+        </label>
+        <label class="field">
+          <span>Devise</span>
+          <select id="setCurrency" class="input">
+            <option value="FCFA">FCFA (XOF)</option>
+            <option value="€">Euro (€)</option>
+            <option value="$">Dollar ($)</option>
+            <option value="MAD">Dirham (MAD)</option>
+            <option value="DZD">Dinar (DZD)</option>
+          </select>
+        </label>
+        <button class="btn btn--primary" id="saveSettings">Enregistrer</button>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel__title">Données</h2>
+        <div class="btn-row">
+          <button class="btn btn--ghost" id="exportData">⬇️ Exporter (sauvegarde)</button>
+          <button class="btn btn--ghost" id="importData">⬆️ Importer</button>
+        </div>
+        <button class="btn btn--danger" id="resetData">🗑️ Tout effacer</button>
+        <input type="file" id="importFile" accept="application/json" hidden />
+      </div>
+
+      <p class="foot">StockCaisse — fonctionne hors-ligne · vos données restent sur votre téléphone.</p>
+    </section>
+  </main>
+
+  <!-- Barre de navigation basse -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab is-active" data-view="accueil"><span>📊</span>Accueil</button>
+    <button class="tab" data-view="stock"><span>📦</span>Stock</button>
+    <button class="tab tab--main" data-view="vendre"><span>🛒</span>Vendre</button>
+    <button class="tab" data-view="recus"><span>🧾</span>Reçus</button>
+    <button class="tab" data-view="reglages"><span>⚙️</span>Réglages</button>
+  </nav>
+
+  <!-- Fenêtre modale produit -->
+  <div class="modal" id="productModal" hidden>
+    <div class="modal__box">
+      <h2 class="modal__title" id="productModalTitle">Nouveau produit</h2>
+      <form id="productForm" class="form">
+        <input type="hidden" id="prodId" />
+        <label class="field">
+          <span>Nom du produit *</span>
+          <input type="text" id="prodName" class="input" required placeholder="Ex. Savon" />
+        </label>
+        <div class="grid2">
+          <label class="field">
+            <span>Prix de vente *</span>
+            <input type="number" id="prodPrice" class="input" min="0" step="any" required placeholder="0" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>Prix d'achat</span>
+            <input type="number" id="prodCost" class="input" min="0" step="any" placeholder="0" inputmode="decimal" />
+          </label>
+        </div>
+        <div class="grid2">
+          <label class="field">
+            <span>Quantité en stock *</span>
+            <input type="number" id="prodQty" class="input" min="0" step="1" required placeholder="0" inputmode="numeric" />
+          </label>
+          <label class="field">
+            <span>Alerte si ≤</span>
+            <input type="number" id="prodThreshold" class="input" min="0" step="1" placeholder="5" inputmode="numeric" />
+          </label>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn--ghost" id="cancelProduct">Annuler</button>
+          <button type="submit" class="btn btn--primary">Enregistrer</button>
+        </div>
+        <button type="button" class="btn btn--danger" id="deleteProduct" hidden>Supprimer ce produit</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Fenêtre modale reçu -->
+  <div class="modal" id="receiptModal" hidden>
+    <div class="modal__box modal__box--receipt">
+      <div class="receipt" id="receiptPaper"></div>
+      <div class="btn-row no-print">
+        <button class="btn btn--ghost" id="closeReceipt">Fermer</button>
+        <button class="btn btn--ghost" id="shareReceipt">📤 Partager</button>
+        <button class="btn btn--primary" id="printReceipt">🖨️ Imprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
