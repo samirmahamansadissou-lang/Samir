@@ -9,7 +9,10 @@ Site portfolio personnel, responsive, construit en **HTML, CSS et JavaScript** p
 - Menu mobile
 - Animations d'apparition au défilement
 - Barres de compétences animées
-- Sections : Accueil, À propos, Compétences, Projets, Contact
+- Frise de parcours (timeline)
+- Formulaire de contact fonctionnel (via Formspree)
+- Bouton de téléchargement du CV
+- Sections : Accueil, À propos, Compétences, Parcours, Projets, Contact
 
 ## 📁 Structure
 
@@ -34,8 +37,27 @@ python3 -m http.server 8000
 ## ✏️ Personnaliser
 
 - **Textes** : modifie directement `index.html`.
-- **Compétences et projets** : édite les tableaux `skills` et `projects` en haut de `script.js`.
+- **Compétences, parcours et projets** : édite les tableaux `skills`, `timeline` et `projects` en haut de `script.js`.
+  - Pour un projet, remplis `link` (lien démo) et `code` (dépôt GitHub) — laisse `""` pour masquer le bouton.
 - **Couleurs** : ajuste les variables `--accent`, `--bg`… au début de `styles.css`.
+
+## 📄 Ajouter ton CV
+
+Dépose ton CV au format PDF à la racine du projet, nommé **`cv.pdf`**.
+Le bouton « Télécharger mon CV » (page d'accueil) le proposera automatiquement.
+
+## 📬 Activer le formulaire de contact
+
+Le formulaire utilise [Formspree](https://formspree.io) (gratuit, sans backend) :
+
+1. Crée un compte sur [formspree.io](https://formspree.io) et un nouveau formulaire.
+2. Copie l'identifiant fourni (ex. `xzbqwabc`).
+3. Dans `index.html`, remplace `VOTRE_ID_FORMSPREE` dans l'attribut `action` du formulaire :
+   ```html
+   <form ... action="https://formspree.io/f/xzbqwabc" method="POST">
+   ```
+
+Tant que ce n'est pas configuré, le formulaire affiche un message d'avertissement au lieu d'envoyer.
 
 ## 🌍 Mettre en ligne (gratuit)
 
