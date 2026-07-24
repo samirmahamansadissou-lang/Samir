@@ -61,6 +61,16 @@ Tant que ce n'est pas configuré, le formulaire affiche un message d'avertisseme
 
 ## 🌍 Mettre en ligne (gratuit)
 
-**GitHub Pages** : dans les *Settings* du dépôt → *Pages* → sélectionne la branche → le site est publié.
+### GitHub Pages (recommandé, 1 seule étape)
 
-D'autres options : [Netlify](https://www.netlify.com/), [Vercel](https://vercel.com/) — glisser-déposer le dossier suffit.
+1. Va sur le dépôt GitHub → onglet **Settings** → section **Pages**.
+2. Sous **Build and deployment** → **Source**, choisis **« Deploy from a branch »**.
+3. **Branch** : sélectionne `claude/site-web-o0j82b` et le dossier `/ (root)`, puis **Save**.
+4. Patiente ~1 minute : ton site sera publié à l'adresse
+   `https://samirmahamansadissou-lang.github.io/Samir/`.
+
+À chaque `git push`, GitHub met le site à jour automatiquement.
+
+### Autres options
+
+[Netlify](https://www.netlify.com/) ou [Vercel](https://vercel.com/) — glisser-déposer le dossier suffit.
