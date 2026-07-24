@@ -289,6 +289,7 @@ function openProductModal(id) {
   $('#prodId').value = p ? p.id : '';
   $('#prodName').value = p ? p.name : '';
   $('#prodCategory').value = p && p.category ? p.category : '';
+  $('#prodBarcode').value = p && p.barcode ? p.barcode : '';
   refreshCategoryDatalist();
   $('#prodPrice').value = p ? p.price : '';
   $('#prodCost').value = p && p.cost ? p.cost : '';
@@ -310,6 +311,7 @@ $('#productForm').addEventListener('submit', (e) => {
   const data = {
     name: $('#prodName').value.trim(),
     category: $('#prodCategory').value.trim(),
+    barcode: $('#prodBarcode').value.trim(),
     price: Math.max(0, Number($('#prodPrice').value) || 0),
     cost: Math.max(0, Number($('#prodCost').value) || 0),
     qty: Math.max(0, Math.floor(Number($('#prodQty').value) || 0)),
@@ -388,6 +390,68 @@ function renderPayGrid() {
 }
 
 $('#saleSearch').addEventListener('input', (e) => renderSaleView(e.target.value));
+
+/* ---------- Scanner de code-barres ---------- */
+let scanStream = null, scanRAF = null, barcodeDetector = null, scanTarget = null;
+
+async function openScanner(onCode) {
+  if (!('BarcodeDetector' in window)) {
+    toast('Le scan n\'est pas pris en charge sur cet appareil');
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('Caméra indisponible');
+    return;
+  }
+  scanTarget = onCode;
+  try {
+    if (!barcodeDetector) barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'] });
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const v = $('#scanVideo');
+    v.srcObject = scanStream;
+    await v.play();
+    $('#scannerModal').hidden = false;
+    scanLoop();
+  } catch (e) {
+    toast('Accès à la caméra refusé');
+    closeScanner();
+  }
+}
+
+async function scanLoop() {
+  if (!scanStream) return;
+  try {
+    const codes = await barcodeDetector.detect($('#scanVideo'));
+    if (codes && codes.length) { handleScan(codes[0].rawValue); return; }
+  } catch (e) { /* image pas encore prête */ }
+  scanRAF = requestAnimationFrame(scanLoop);
+}
+
+function handleScan(code) {
+  const cb = scanTarget;
+  closeScanner();
+  if (cb) cb(String(code).trim());
+}
+
+function closeScanner() {
+  if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF = null; }
+  if (scanStream) { scanStream.getTracks().forEach((t) => t.stop()); scanStream = null; }
+  const v = $('#scanVideo'); if (v) v.srcObject = null;
+  $('#scannerModal').hidden = true;
+  scanTarget = null;
+}
+
+$('#closeScanner').addEventListener('click', closeScanner);
+$('#scannerModal').addEventListener('click', (e) => { if (e.target === $('#scannerModal')) closeScanner(); });
+
+$('#scanSaleBtn').addEventListener('click', () => openScanner(addByBarcode));
+$('#scanProductBtn').addEventListener('click', () => openScanner((code) => { $('#prodBarcode').value = code; toast('Code-barres enregistré'); }));
+
+function addByBarcode(code) {
+  const p = state.products.find((x) => (x.barcode || '') && x.barcode === code);
+  if (p) { addToCart(p.id); toast(`Ajouté : ${p.name}`); }
+  else { $('#saleSearch').value = code; renderSaleView(code); toast('Aucun produit avec ce code'); }
+}
 
 function addToCart(productId) {
   const p = state.products.find((x) => x.id === productId);
@@ -540,6 +604,50 @@ function receiptHTML(sale) {
   `;
 }
 
+function receiptCanvas(sale) {
+  const s = state.settings;
+  const W = 560, pad = 36, scale = 2;
+  let h = pad + 34;
+  if (s.address) h += 18;
+  if (s.phone) h += 18;
+  h += 22 + 40 + (sale.client ? 20 : 0) + 26 + 42 * sale.items.length + 26 + 32 + 26 + 38 + pad;
+
+  const c = document.createElement('canvas');
+  c.width = W * scale; c.height = h * scale;
+  const ctx = c.getContext('2d'); ctx.scale(scale, scale);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, h);
+  ctx.textBaseline = 'top';
+  let y = pad;
+  const draw = (t, font, color, align, x) => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(t, x, y); };
+  const dashed = () => { ctx.strokeStyle = '#c4c4c4'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke(); ctx.setLineDash([]); };
+
+  draw(s.business || 'Ma Boutique', '700 22px Arial', '#111', 'center', W / 2); y += 30;
+  if (s.address) { draw(s.address, '12px Arial', '#666', 'center', W / 2); y += 18; }
+  if (s.phone) { draw('Tél : ' + s.phone, '12px Arial', '#666', 'center', W / 2); y += 18; }
+  y += 10; dashed(); y += 14;
+  draw('Reçu N° ' + sale.number, '13px Arial', '#111', 'left', pad); y += 20;
+  draw('Date : ' + fmtDate(sale.date), '13px Arial', '#111', 'left', pad); y += 20;
+  if (sale.client) { draw('Client : ' + sale.client, '13px Arial', '#111', 'left', pad); y += 20; }
+  y += 4; dashed(); y += 14;
+  sale.items.forEach((i) => {
+    const name = i.name.length > 32 ? i.name.slice(0, 31) + '…' : i.name;
+    draw(name, '600 14px Arial', '#111', 'left', pad);
+    draw(money(i.price * i.qty), '600 14px Arial', '#111', 'right', W - pad); y += 20;
+    draw(`${i.qty} × ${money(i.price)}`, '12px Arial', '#666', 'left', pad); y += 22;
+  });
+  y += 2; dashed(); y += 12;
+  draw('TOTAL', '700 16px Arial', '#111', 'left', pad);
+  draw(money(sale.total), '700 16px Arial', '#111', 'right', W - pad); y += 28;
+  draw('Règlement : ' + paymentLabel(sale.payment), '13px Arial', '#333', 'center', W / 2); y += 26;
+  draw('Merci de votre confiance !', '12px Arial', '#666', 'center', W / 2); y += 16;
+  draw('— ' + (s.business || 'Ma Boutique') + ' —', '12px Arial', '#666', 'center', W / 2);
+  return c;
+}
+
+function receiptToBlob(sale) {
+  return new Promise((resolve) => receiptCanvas(sale).toBlob(resolve, 'image/png'));
+}
+
 let currentReceiptId = null;
 function openReceipt(id) {
   const sale = state.sales.find((s) => s.id === id);
@@ -554,13 +662,11 @@ $('#closeReceipt').addEventListener('click', closeReceipt);
 $('#receiptModal').addEventListener('click', (e) => {
   if (e.target === $('#receiptModal')) closeReceipt();
 });
-$('#printReceipt').addEventListener('click', () => window.print());
+$('#printReceipt').addEventListener('click', () => { try { window.print(); } catch (e) { toast('Impression indisponible ici'); } });
 
-$('#shareReceipt').addEventListener('click', async () => {
-  const sale = state.sales.find((s) => s.id === currentReceiptId);
-  if (!sale) return;
+function receiptText(sale) {
   const s = state.settings;
-  const lines = [
+  return [
     `*${s.business || 'Ma Boutique'}*`,
     `Reçu N° ${sale.number} — ${fmtDate(sale.date)}`,
     sale.client ? `Client : ${sale.client}` : '',
@@ -570,16 +676,38 @@ $('#shareReceipt').addEventListener('click', async () => {
     `TOTAL : ${money(sale.total)}`,
     `Règlement : ${paymentLabel(sale.payment)}`,
     'Merci de votre confiance !',
-  ].filter(Boolean);
-  const text = lines.join('\n');
+  ].filter(Boolean).join('\n');
+}
+
+$('#imageReceipt').addEventListener('click', async () => {
+  const sale = state.sales.find((s) => s.id === currentReceiptId);
+  if (!sale) return;
   try {
-    if (navigator.share) {
+    const blob = await receiptToBlob(sale);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `recu-${sale.number}.png`; a.click();
+    URL.revokeObjectURL(url);
+    toast('Image du reçu enregistrée');
+  } catch (e) { toast('Impossible de générer l\'image'); }
+});
+
+$('#shareReceipt').addEventListener('click', async () => {
+  const sale = state.sales.find((s) => s.id === currentReceiptId);
+  if (!sale) return;
+  const text = receiptText(sale);
+  try {
+    const blob = await receiptToBlob(sale);
+    const file = new File([blob], `recu-${sale.number}.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `Reçu ${sale.number}`, text });
+    } else if (navigator.share) {
       await navigator.share({ title: `Reçu ${sale.number}`, text });
     } else {
       await navigator.clipboard.writeText(text);
       toast('Reçu copié dans le presse-papiers');
     }
-  } catch (e) { /* annulé */ }
+  } catch (e) { /* annulé par l'utilisateur */ }
 });
 
 /* ===================================================================
@@ -617,6 +745,31 @@ $('#exportData').addEventListener('click', () => {
   a.click();
   URL.revokeObjectURL(url);
   toast('Sauvegarde exportée');
+});
+
+$('#exportSales').addEventListener('click', () => {
+  if (state.sales.length === 0) { toast('Aucune vente à exporter'); return; }
+  const sep = ';';
+  const header = ['Reçu', 'Date', 'Heure', 'Client', 'Paiement', 'Article', 'Quantité', 'Prix unitaire', 'Total ligne', 'Total vente'];
+  const rows = [header];
+  [...state.sales].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((s) => {
+    const d = new Date(s.date);
+    const date = d.toLocaleDateString('fr-FR');
+    const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    s.items.forEach((i) => {
+      rows.push([s.number, date, time, s.client || '', paymentLabel(s.payment), i.name, i.qty, i.price, i.price * i.qty, s.total]);
+    });
+  });
+  const csv = rows.map((r) => r.map((cell) => {
+    const v = String(cell).replace(/"/g, '""');
+    return /[";\n]/.test(v) ? `"${v}"` : v;
+  }).join(sep)).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `ventes-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  toast('Ventes exportées (CSV)');
 });
 
 $('#importData').addEventListener('click', () => $('#importFile').click());

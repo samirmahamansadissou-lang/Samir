@@ -183,6 +183,8 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
 .btn--ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
 .btn--danger { background: color-mix(in srgb, var(--neg) 10%, transparent); color: var(--neg); width: 100%; margin-top: 10px; }
 .btn--big { width: 100%; padding: 15px; font-size: 15.5px; margin-top: 14px; }
+.btn--icon { padding: 11px; flex: 0 0 auto; }
+.btn--icon svg { width: 20px; height: 20px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn-row .btn { flex: 1; }
@@ -271,6 +273,12 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
 [hidden] { display: none !important; }
 .modal__box { background: var(--surface); width: 100%; max-width: 640px; border-radius: 18px 18px 0 0; padding: 22px 18px calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 92vh; overflow-y: auto; animation: slideUp 0.22s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .modal__box--receipt { padding-top: 16px; }
+
+/* ===== Scanner ===== */
+.scanview { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #000; border-radius: var(--r); overflow: hidden; margin-bottom: 10px; }
+.scanview video { width: 100%; height: 100%; object-fit: cover; }
+.scanview__frame { position: absolute; inset: 18% 12%; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 10px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35); }
+.scanview__hint { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
 .modal__title { font-size: 17px; font-weight: 650; margin-bottom: 18px; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
