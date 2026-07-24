@@ -81,6 +81,37 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 .card__hint { font-size: 12px; color: var(--muted); }
 .card--accent .card__hint { color: rgba(255,255,255,0.85); }
 
+/* ===== Sélecteur de période (segmented) ===== */
+.segmented {
+  display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 4px; margin-bottom: 16px;
+}
+.seg {
+  flex: 1; border: none; background: none; color: var(--muted); font-size: 13px; font-weight: 600;
+  padding: 8px 4px; border-radius: 9px; cursor: pointer;
+}
+.seg.is-active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.card__label em { font-style: normal; opacity: 0.75; font-size: 11px; }
+
+/* ===== Puces de catégorie ===== */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; }
+.chip {
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
+}
+.chip.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.chips:empty { display: none; }
+
+/* ===== Mini graphique ===== */
+.chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
+.chart__bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.chart__fill {
+  width: 100%; max-width: 34px; background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  border-radius: 6px 6px 0 0; min-height: 3px; transition: height 0.3s ease;
+}
+.chart__label { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.chart__val { font-size: 9px; color: var(--muted); }
+
 /* ===== Panneaux ===== */
 .panel {
   background: var(--surface);
