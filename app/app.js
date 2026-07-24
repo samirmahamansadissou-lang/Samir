@@ -23,6 +23,16 @@ const defaultState = () => ({
 let state = load();
 let cart = []; // [{ productId, qty }]
 
+/* ---------- Moyens de paiement ---------- */
+const PAYMENTS = [
+  { id: 'especes', label: 'Espèces', icon: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>' },
+  { id: 'mobile', label: 'Mobile Money', icon: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10.5 18h3"/>' },
+  { id: 'carte', label: 'Carte', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>' },
+  { id: 'credit', label: 'Crédit', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>' },
+];
+let selectedPayment = 'especes';
+function paymentLabel(id) { const p = PAYMENTS.find((x) => x.id === id); return p ? p.label : 'Espèces'; }
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -181,10 +191,18 @@ function renderDashboard() {
   panel.hidden = low.length === 0;
   $('#lowStockList').innerHTML = low
     .map((p) => {
-      const cls = p.qty === 0 ? 'badge--warn' : 'badge--warn';
       const label = p.qty === 0 ? 'Rupture' : `${p.qty} restant${p.qty > 1 ? 's' : ''}`;
-      return `<li><div class="ml__main"><span>${esc(p.name)}</span></div><span class="badge ${cls}">${label}</span></li>`;
+      return `<li><div class="ml__main"><span>${esc(p.name)}</span></div><span class="badge badge--warn">${label}</span></li>`;
     })
+    .join('');
+
+  // Encaissements par moyen de paiement
+  const payTotals = {};
+  scoped.forEach((s) => { const k = s.payment || 'especes'; payTotals[k] = (payTotals[k] || 0) + s.total; });
+  const payRows = PAYMENTS.filter((pm) => payTotals[pm.id]);
+  $('#payPanel').hidden = payRows.length === 0;
+  $('#payBreakdown').innerHTML = payRows
+    .map((pm) => `<li><div class="ml__main"><span>${pm.label}</span><small>${scoped.filter((s) => (s.payment || 'especes') === pm.id).length} vente(s)</small></div><span class="num" style="font-weight:700">${money(payTotals[pm.id])}</span></li>`)
     .join('');
 
   // Ventes récentes
@@ -350,7 +368,23 @@ function renderSaleView(filter = '') {
   $$('#pickList .pick').forEach((b) =>
     b.addEventListener('click', () => addToCart(b.dataset.id))
   );
+  renderPayGrid();
   renderCart();
+}
+
+function renderPayGrid() {
+  $('#payGrid').innerHTML = PAYMENTS
+    .map((pm) => `<button type="button" class="pay__opt ${pm.id === selectedPayment ? 'is-active' : ''}" data-pay="${pm.id}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${pm.icon}</svg>
+      ${pm.label}
+    </button>`)
+    .join('');
+  $$('#payGrid .pay__opt').forEach((b) =>
+    b.addEventListener('click', () => {
+      selectedPayment = b.dataset.pay;
+      $$('#payGrid .pay__opt').forEach((o) => o.classList.toggle('is-active', o === b));
+    })
+  );
 }
 
 $('#saleSearch').addEventListener('input', (e) => renderSaleView(e.target.value));
@@ -435,6 +469,7 @@ function checkout() {
     number,
     date: new Date().toISOString(),
     client: $('#clientName').value.trim(),
+    payment: selectedPayment,
     items,
     total,
     profit,
@@ -444,6 +479,7 @@ function checkout() {
   save();
 
   cart = [];
+  selectedPayment = 'especes';
   $('#clientName').value = '';
   renderSaleView('');
   toast('Vente enregistrée ✓');
@@ -461,9 +497,9 @@ function renderReceipts() {
       (s) => `<li class="receipt-item" data-id="${s.id}">
         <div>
           <div class="receipt-item__no">Reçu ${esc(s.number)}</div>
-          <div class="receipt-item__date">${fmtDate(s.date)}${s.client ? ' · ' + esc(s.client) : ''}</div>
+          <div class="receipt-item__date">${fmtDate(s.date)} · ${paymentLabel(s.payment)}${s.client ? ' · ' + esc(s.client) : ''}</div>
         </div>
-        <div class="receipt-item__total">${money(s.total)}</div>
+        <div class="receipt-item__total num">${money(s.total)}</div>
       </li>`
     )
     .join('');
@@ -487,9 +523,11 @@ function receiptHTML(sale) {
       ${s.phone ? 'Tél : ' + esc(s.phone) : ''}
     </div>
     <div class="r-line"></div>
-    <div>Reçu N° <strong>${esc(sale.number)}</strong></div>
-    <div>Date : ${fmtDate(sale.date)}</div>
-    ${sale.client ? '<div>Client : ' + esc(sale.client) + '</div>' : ''}
+    <div class="r-meta">
+      <div>Reçu N° <strong>${esc(sale.number)}</strong></div>
+      <div>Date : ${fmtDate(sale.date)}</div>
+      ${sale.client ? '<div>Client : ' + esc(sale.client) + '</div>' : ''}
+    </div>
     <div class="r-line"></div>
     <table>
       <thead><tr><th>Article</th><th class="num">Qté</th><th class="num">P.U.</th><th class="num">Total</th></tr></thead>
@@ -497,6 +535,7 @@ function receiptHTML(sale) {
     </table>
     <div class="r-line"></div>
     <div class="r-total"><span>TOTAL</span><span>${money(sale.total)}</span></div>
+    <div class="r-pay">Règlement : ${paymentLabel(sale.payment)}</div>
     <div class="r-foot">Merci de votre confiance !<br>— ${esc(s.business || 'Ma Boutique')} —</div>
   `;
 }
@@ -529,6 +568,7 @@ $('#shareReceipt').addEventListener('click', async () => {
     ...sale.items.map((i) => `${i.name}  ${i.qty} x ${money(i.price)} = ${money(i.price * i.qty)}`),
     '------------------------------',
     `TOTAL : ${money(sale.total)}`,
+    `Règlement : ${paymentLabel(sale.payment)}`,
     'Merci de votre confiance !',
   ].filter(Boolean);
   const text = lines.join('\n');

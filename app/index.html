@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="description" content="Gérez votre stock et générez des reçus en un clin d'œil." />
-  <meta name="theme-color" content="#0f766e" />
+  <meta name="description" content="Gérez votre stock, encaissez vos ventes et générez des reçus." />
+  <meta name="theme-color" content="#0c6b5b" />
   <title>StockCaisse — Gestion & Reçus</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -12,10 +12,11 @@
   <link rel="apple-touch-icon" href="icon.svg" />
 </head>
 <body>
-  <!-- En-tête -->
   <header class="topbar">
     <div class="topbar__brand">
-      <span class="topbar__logo" id="topLogo">🧾</span>
+      <span class="topbar__logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.5-1.6L13 21l-1-2-1 2-2.5-1.6L6 21V3z"/><path d="M9.5 8h5M9.5 12h5"/></svg>
+      </span>
       <div>
         <strong id="topName">StockCaisse</strong>
         <small id="topSub">Gestion de stock &amp; reçus</small>
@@ -37,24 +38,36 @@
 
       <div class="cards">
         <div class="card card--accent">
-          <span class="card__label">Chiffre d'affaires <em id="periodLabelA">(tout)</em></span>
-          <strong class="card__value" id="statRevenue">—</strong>
+          <div class="card__head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></svg>
+            <span class="label">Chiffre d'affaires <span id="periodLabelA">(tout)</span></span>
+          </div>
+          <strong class="card__value num" id="statRevenue">—</strong>
           <small class="card__hint" id="statSales">0 vente</small>
         </div>
         <div class="card">
-          <span class="card__label">Bénéfice estimé <em id="periodLabelB">(tout)</em></span>
-          <strong class="card__value" id="statProfit">—</strong>
+          <div class="card__head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+            <span class="label">Bénéfice <span id="periodLabelB">(tout)</span></span>
+          </div>
+          <strong class="card__value num" id="statProfit">—</strong>
           <small class="card__hint">marge sur ventes</small>
         </div>
         <div class="card">
-          <span class="card__label">Valeur du stock</span>
-          <strong class="card__value" id="statStockValue">—</strong>
+          <div class="card__head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"/></svg>
+            <span class="label">Valeur du stock</span>
+          </div>
+          <strong class="card__value num" id="statStockValue">—</strong>
           <small class="card__hint" id="statStockCount">0 article</small>
         </div>
         <div class="card">
-          <span class="card__label">Panier moyen</span>
-          <strong class="card__value" id="statAvg">—</strong>
-          <small class="card__hint">par vente sur la période</small>
+          <div class="card__head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M6 6L5 3H3"/></svg>
+            <span class="label">Panier moyen</span>
+          </div>
+          <strong class="card__value num" id="statAvg">—</strong>
+          <small class="card__hint">par vente</small>
         </div>
       </div>
 
@@ -63,8 +76,16 @@
         <div class="chart" id="salesChart"></div>
       </div>
 
+      <div class="panel" id="payPanel" hidden>
+        <h2 class="panel__title">Encaissements par moyen</h2>
+        <ul class="minilist" id="payBreakdown"></ul>
+      </div>
+
       <div class="panel" id="lowStockPanel" hidden>
-        <h2 class="panel__title">⚠️ Stock faible</h2>
+        <h2 class="panel__title is-warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.1"/></svg>
+          Stock faible
+        </h2>
         <ul class="minilist" id="lowStockList"></ul>
       </div>
 
@@ -79,11 +100,14 @@
       <h1 class="view__title">Stock</h1>
       <div class="searchbar">
         <input type="search" id="stockSearch" placeholder="Rechercher un produit…" />
-        <button class="btn btn--primary" id="addProductBtn">+ Produit</button>
+        <button class="btn btn--primary" id="addProductBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Produit
+        </button>
       </div>
       <div class="chips" id="stockChips"></div>
       <ul class="products" id="productList"></ul>
-      <p class="empty" id="stockEmpty" hidden>Aucun produit. Touchez « + Produit » pour commencer.</p>
+      <p class="empty" id="stockEmpty" hidden>Aucun produit pour l'instant.<br>Touchez « Produit » pour en ajouter un.</p>
     </section>
 
     <!-- ===== VENDRE ===== -->
@@ -100,8 +124,14 @@
         <p class="empty" id="cartEmpty">Le panier est vide.</p>
         <div class="cart__total">
           <span>Total</span>
-          <strong id="cartTotal">—</strong>
+          <strong class="num" id="cartTotal">—</strong>
         </div>
+
+        <div class="pay">
+          <span class="label">Moyen de paiement</span>
+          <div class="pay__grid" id="payGrid"></div>
+        </div>
+
         <input type="text" id="clientName" class="input" placeholder="Nom du client (facultatif)" />
         <button class="btn btn--primary btn--big" id="checkoutBtn" disabled>Encaisser &amp; générer le reçu</button>
       </div>
@@ -146,24 +176,50 @@
       <div class="panel">
         <h2 class="panel__title">Données</h2>
         <div class="btn-row">
-          <button class="btn btn--ghost" id="exportData">⬇️ Exporter (sauvegarde)</button>
-          <button class="btn btn--ghost" id="importData">⬆️ Importer</button>
+          <button class="btn btn--ghost" id="exportData">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+            Exporter
+          </button>
+          <button class="btn btn--ghost" id="importData">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></svg>
+            Importer
+          </button>
         </div>
-        <button class="btn btn--danger" id="resetData">🗑️ Tout effacer</button>
+        <button class="btn btn--danger" id="resetData">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+          Tout effacer
+        </button>
         <input type="file" id="importFile" accept="application/json" hidden />
       </div>
 
-      <p class="foot">StockCaisse — fonctionne hors-ligne · vos données restent sur votre téléphone.</p>
+      <p class="foot">StockCaisse fonctionne hors-ligne.<br>Vos données restent sur votre appareil.</p>
     </section>
   </main>
 
   <!-- Barre de navigation basse -->
   <nav class="tabbar" id="tabbar">
-    <button class="tab is-active" data-view="accueil"><span>📊</span>Accueil</button>
-    <button class="tab" data-view="stock"><span>📦</span>Stock</button>
-    <button class="tab tab--main" data-view="vendre"><span>🛒</span>Vendre</button>
-    <button class="tab" data-view="recus"><span>🧾</span>Reçus</button>
-    <button class="tab" data-view="reglages"><span>⚙️</span>Réglages</button>
+    <button class="tab is-active" data-view="accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+      <span>Accueil</span>
+    </button>
+    <button class="tab" data-view="stock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+      <span>Stock</span>
+    </button>
+    <button class="tab tab--main" data-view="vendre">
+      <span class="tab__ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      </span>
+      <span>Vendre</span>
+    </button>
+    <button class="tab" data-view="recus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-2.5-1.6L13 21l-1-2-1 2-2.5-1.6L6 21V3z"/><path d="M9.5 8h5M9.5 12h5"/></svg>
+      <span>Reçus</span>
+    </button>
+    <button class="tab" data-view="reglages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h7M15 18h5"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>
+      <span>Réglages</span>
+    </button>
   </nav>
 
   <!-- Fenêtre modale produit -->
@@ -216,8 +272,14 @@
       <div class="receipt" id="receiptPaper"></div>
       <div class="btn-row no-print">
         <button class="btn btn--ghost" id="closeReceipt">Fermer</button>
-        <button class="btn btn--ghost" id="shareReceipt">📤 Partager</button>
-        <button class="btn btn--primary" id="printReceipt">🖨️ Imprimer</button>
+        <button class="btn btn--ghost" id="shareReceipt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/></svg>
+          Partager
+        </button>
+        <button class="btn btn--primary" id="printReceipt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8z"/></svg>
+          Imprimer
+        </button>
       </div>
     </div>
   </div>

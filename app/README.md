@@ -8,8 +8,8 @@ Construite en **HTML, CSS et JavaScript purs** — aucune installation, aucun se
 
 - **📊 Tableau de bord** : chiffre d'affaires, bénéfice estimé, panier moyen et valeur du stock, avec **filtre par période** (aujourd'hui / 7 jours / 30 jours / tout) et **graphique des ventes par jour**.
 - **📦 Stock** : ajout/modification de produits (prix de vente, prix d'achat, quantité), **catégories** avec filtre, alertes de rupture.
-- **🛒 Caisse** : panier rapide, le stock se décrémente automatiquement à chaque vente.
-- **🧾 Reçus** : génération automatique numérotée, impression (PDF) et partage (WhatsApp, SMS…).
+- **🛒 Caisse** : panier rapide, le stock se décrémente automatiquement à chaque vente, avec **moyen de paiement** (Espèces, Mobile Money, Carte, Crédit).
+- **🧾 Reçus** : génération automatique numérotée, moyen de paiement affiché, impression (PDF) et partage (WhatsApp, SMS…).
 - **⚙️ Réglages** : nom de l'entreprise, téléphone, adresse, devise (FCFA par défaut).
 - **💾 Sauvegarde** : export / import de toutes vos données en un fichier.
 - **📴 Hors-ligne** : installable sur l'écran d'accueil, fonctionne sans connexion.
